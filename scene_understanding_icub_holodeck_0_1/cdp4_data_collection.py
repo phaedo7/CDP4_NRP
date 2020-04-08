@@ -53,15 +53,16 @@ class CDP4DataCollection:
         self.__delete_model_srv = rospy.ServiceProxy("/gazebo/delete_model", DeleteModel)
 
     @staticmethod
-    def generate_random_pose(x_mean=-1.25, x_std=0.5, y_mean=0.5, y_std=0.25, z_mean=0.25, z_std=1.0):
+    def generate_random_pose(obj_size,x_mean=-0.0, x_std=0.2, y_mean=0.5, y_std=0.25, z_mean=1.25, z_std=2.0):
         """
         Generates a random pose within the specified xyz limits.
         """
-        orientation = quaternion_from_euler(-np.pi, 0, np.random.uniform(-np.pi, np.pi))
+        orientation = quaternion_from_euler(0, 0, np.random.uniform(-np.pi, np.pi))
         pose = Pose()
         pose.position.x = np.random.randn() * x_std + x_mean
         pose.position.y = np.random.randn() * y_std + y_mean
-        pose.position.z = np.maximum(np.random.uniform() * z_std + z_mean, z_mean)
+        pose.position.z = float(obj_size*np.random.uniform(0,0.5950,1))
+        #pose.position.z = np.maximum(np.random.uniform() * z_std + z_mean, z_mean)
         pose.orientation.x = orientation[0]
         pose.orientation.y = orientation[1]
         pose.orientation.z = orientation[2]
@@ -159,22 +160,22 @@ class CDP4DataCollection:
 
         return self.last_image[0][0]
 
-    def __cart_to_ang(self, position):
+    def __cart_to_ang(self, position,shift):
         """
         Takes object's position as input and returns icub's absolute angles.
         """
-        obj_pos = np.array([position.x, position.y, position.z])
-        cam_pos = np.array([2.15042024657, 1.23814627784, 1.33805071957])
+        obj_pos = np.array([position.x, position.y, position.z+shift])
+        cam_pos = np.array([-2.528, 0.16 , 0.989])
         rel_pos = np.subtract(obj_pos, cam_pos)
         horizontal_position = np.arctan(rel_pos[1] / rel_pos[0])
         vertical_position = np.arctan(rel_pos[2] / rel_pos[0])
         return horizontal_position, vertical_position
     
-    def move_eyes(self, obj_pos):
+    def move_eyes(self, obj_pos,shift):
         """
         Moves both iCub eyes to an absolute position by publishing the new position on the 
         /icub/eye_version/pos ROS topic
         """
-        horizontal_position, vertical_position = self.__cart_to_ang(obj_pos)
+        horizontal_position, vertical_position = self.__cart_to_ang(obj_pos,shift)
         self.__horizontal_pos_pub.publish(horizontal_position)
         self.__vertical_pos_pub.publish(vertical_position)
